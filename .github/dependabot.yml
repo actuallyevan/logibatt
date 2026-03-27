@@ -6,4 +6,4 @@ updates:
       interval: "monthly"
     groups:
       development-dependencies:
-        dependency-type: "dev"
+        dependency-type: "development"
