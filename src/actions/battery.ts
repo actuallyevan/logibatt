@@ -1,18 +1,15 @@
-import streamdeck, {
-  action,
-  SingletonAction,
-  WillAppearEvent,
-  WillDisappearEvent,
-} from "@elgato/streamdeck";
+import streamdeck, { action, SingletonAction } from "@elgato/streamdeck";
 import WebSocket from "ws";
 
 const DEVICE_REGEX = /pro_x_2_compact_wireless_mouse/i;
 
-@action({ UUID: "com.evan.logibatt.increment" })
+@action({ UUID: "com.evan.logibatt.monitor" })
 export class Battery extends SingletonAction {
   private ws?: WebSocket;
   private deviceId?: string;
-  private lastPayload?: any;
+  private lastPercent?: number;
+  private lastCharging?: boolean;
+  private lastFullyCharged?: boolean;
   private retryInterval?: NodeJS.Timeout;
 
   private connect() {
@@ -64,12 +61,12 @@ export class Battery extends SingletonAction {
 
       case `/battery/${this.deviceId}/state`:
         this.send("SUBSCRIBE", "/battery/state/changed");
-        this.updateDisplay(payload);
+        this.updateState(payload);
         break;
 
       case "/battery/state/changed":
         if (payload?.deviceId === this.deviceId) {
-          this.updateDisplay(payload);
+          this.updateState(payload);
         }
         break;
     }
@@ -79,43 +76,50 @@ export class Battery extends SingletonAction {
     this.ws?.send(JSON.stringify({ msgid: "", verb, path }));
   }
 
-  private updateDisplay(payload: any) {
-    this.lastPayload = payload;
+  private updateState(payload: any) {
+    if (payload?.percentage !== undefined) {
+      this.lastPercent = payload.percentage;
+      this.lastCharging = payload.charging;
+      this.lastFullyCharged = payload.fullyCharged;
+      this.render();
+    }
+  }
 
-    if (!payload || payload.percentage === undefined) {
+  private render() {
+    if (this.lastPercent === undefined) {
+      for (const action of this.actions) {
+        action.setTitle("...");
+      }
       return;
     }
 
-    const pct = payload.percentage;
-    const text = payload.fullyCharged
+    const pct = this.lastPercent;
+    const text = this.lastFullyCharged
       ? "100%"
-      : payload.charging
-        ? `⚡${pct}%`
-        : `${pct}%`;
+      : this.lastCharging
+        ? "⚡" + pct + "%"
+        : pct + "%";
 
     for (const action of this.actions) {
       action.setTitle(text);
     }
   }
 
-  override async onWillAppear(ev: WillAppearEvent<any>): Promise<void> {
-    if (this.lastPayload) {
-      this.updateDisplay(this.lastPayload);
-    } else {
-      ev.action.setTitle("...");
-    }
-
+  override onWillAppear(): void {
+    this.render();
     this.connect();
   }
 
-  override async onWillDisappear(ev: WillDisappearEvent<any>): Promise<void> {
+  override onWillDisappear(): void {
     if (this.actions.next().done) {
       clearTimeout(this.retryInterval);
+
       if (this.ws) {
         this.ws.removeAllListeners();
         this.ws.close();
         this.ws = undefined;
       }
+
       streamdeck.logger.info("No more remaining keys.");
     }
   }

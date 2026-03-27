@@ -4,20 +4,20 @@
 	"Author": "Evan",
 	"Actions": [
 		{
-			"Name": "Counter",
-			"UUID": "com.evan.logibatt.increment",
-			"Icon": "imgs/actions/counter/icon",
-			"Tooltip": "Displays a count, which increments by one on press.",
-			"PropertyInspectorPath": "ui/increment-counter.html",
+			"Name": "Battery Monitor",
+			"UUID": "com.evan.logibatt.monitor",
+			"Icon": "imgs/actions/icon",
+			"Tooltip": "Displays Logitech mouse battery.",
 			"Controllers": [
 				"Keypad"
 			],
 			"States": [
 				{
-					"Image": "imgs/actions/counter/key",
-					"TitleAlignment": "middle"
+					"Image": "imgs/actions/icon"
 				}
-			]
+			],
+			"UserTitleEnabled": false,
+			"VisibleInActionsList": true
 		}
 	],
 	"Category": "logibatt",
@@ -30,10 +30,6 @@
 		"MinimumVersion": "6.9"
 	},
 	"OS": [
-		{
-			"Platform": "mac",
-			"MinimumVersion": "12"
-		},
 		{
 			"Platform": "windows",
 			"MinimumVersion": "10"
